@@ -26,13 +26,13 @@
   #define             DEBUG_PRINTLN(x)
 #endif
 
-// Pins used by the door sensor and the push button
-const PROGMEM uint8_t DOOR_SENSOR_PIN = D5;
+// Pins used by the occupancy sensor and the push button
+const PROGMEM uint8_t OCCUPANCY_SENSOR_PIN = D5;
 const PROGMEM uint8_t BUILTINLED_PIN  = BUILTIN_LED;
 
 // MQTT ID and topics
 char                  MQTT_CLIENT_ID[7]                                           = {0};
-char                  MQTT_BINARY_SENSOR_DOOR_STATE_TOPIC[STRUCT_CHAR_ARRAY_SIZE] = {0};
+char                  MQTT_BINARY_SENSOR_OCCUPANCY_STATE_TOPIC[STRUCT_CHAR_ARRAY_SIZE] = {0};
 const char*           MQTT_ON_PAYLOAD                                             = "OFF";
 const char*           MQTT_OFF_PAYLOAD                                            = "ON";
 
@@ -44,12 +44,12 @@ typedef struct {
   char                mqttPort[5]                           = {0};
 } Settings;
 
-uint8_t               doorState             = LOW;
-uint8_t               currentDoorState      = doorState;
+uint8_t               occupancyState             = LOW;
+uint8_t               currentOccupancyState      = occupancyState;
 
 enum CMD {
   CMD_NOT_DEFINED,
-  CMD_DOOR_STATE_CHANGED
+  CMD_OCCUPANCY_STATE_CHANGED
 };
 volatile uint8_t cmd = CMD_NOT_DEFINED;
 
@@ -64,22 +64,22 @@ PubSubClient  mqttClient(wifiClient);
 ///////////////////////////////////////////////////////////////////////////
 
 /*
-  Function called to publish the state of the door sensor
+  Function called to publish the state of the occupancy sensor
 */
-void publishDoorState() {
-  if (doorState == HIGH) {
-    if (mqttClient.publish(MQTT_BINARY_SENSOR_DOOR_STATE_TOPIC, MQTT_ON_PAYLOAD, true)) {
+void publishOccupancyState() {
+  if (occupancyState == HIGH) {
+    if (mqttClient.publish(MQTT_BINARY_SENSOR_OCCUPANCY_STATE_TOPIC, MQTT_ON_PAYLOAD, true)) {
       DEBUG_PRINT(F("INFO: MQTT message publish succeeded. Topic: "));
-      DEBUG_PRINT(MQTT_BINARY_SENSOR_DOOR_STATE_TOPIC);
+      DEBUG_PRINT(MQTT_BINARY_SENSOR_OCCUPANCY_STATE_TOPIC);
       DEBUG_PRINT(F(". Payload: "));
       DEBUG_PRINTLN(MQTT_ON_PAYLOAD);
     } else {
       DEBUG_PRINTLN(F("ERROR: MQTT message publish failed, either connection lost, or message too large"));
     }
   } else {
-    if (mqttClient.publish(MQTT_BINARY_SENSOR_DOOR_STATE_TOPIC, MQTT_OFF_PAYLOAD, true)) {
+    if (mqttClient.publish(MQTT_BINARY_SENSOR_OCCUPANCY_STATE_TOPIC, MQTT_OFF_PAYLOAD, true)) {
       DEBUG_PRINT(F("INFO: MQTT message publish succeeded. Topic: "));
-      DEBUG_PRINT(MQTT_BINARY_SENSOR_DOOR_STATE_TOPIC);
+      DEBUG_PRINT(MQTT_BINARY_SENSOR_OCCUPANCY_STATE_TOPIC);
       DEBUG_PRINT(F(". Payload: "));
       DEBUG_PRINTLN(MQTT_OFF_PAYLOAD);
     } else {
@@ -139,10 +139,10 @@ void configModeCallback (WiFiManager *myWiFiManager) {
 //   ISR
 ///////////////////////////////////////////////////////////////////////////
 /*
-  Function called when the door is opened/closed
+  Function called when the occupancy is opened/closed
 */
-void doorStateChangedISR() {
-  cmd = CMD_DOOR_STATE_CHANGED;
+void occupancyStateChangedISR() {
+  cmd = CMD_OCCUPANCY_STATE_CHANGED;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -175,10 +175,10 @@ void setup() {
 #ifdef DEBUG
   Serial.begin(115200);
 #endif
-  pinMode(DOOR_SENSOR_PIN,  INPUT_PULLUP);
+  pinMode(OCCUPANCY_SENSOR_PIN,  INPUT_PULLUP);
   pinMode(BUILTIN_LED,      OUTPUT);
 
-  attachInterrupt(digitalPinToInterrupt(DOOR_SENSOR_PIN), doorStateChangedISR,    CHANGE);  
+  attachInterrupt(digitalPinToInterrupt(OCCUPANCY_SENSOR_PIN), occupancyStateChangedISR,    CHANGE);  
 
   ticker.attach(0.6, tick);
 
@@ -186,9 +186,9 @@ void setup() {
   DEBUG_PRINT(F("INFO: MQTT client ID/Hostname: "));
   DEBUG_PRINTLN(MQTT_CLIENT_ID);
 
-  sprintf(MQTT_BINARY_SENSOR_DOOR_STATE_TOPIC, "%06X/binary_sensor/door/state", ESP.getChipId());
+  sprintf(MQTT_BINARY_SENSOR_OCCUPANCY_STATE_TOPIC, "%06X/binary_sensor/occupancy/state", ESP.getChipId());
   DEBUG_PRINT(F("INFO: MQTT command topic: "));
-  DEBUG_PRINTLN(MQTT_BINARY_SENSOR_DOOR_STATE_TOPIC);
+  DEBUG_PRINTLN(MQTT_BINARY_SENSOR_OCCUPANCY_STATE_TOPIC);
 
   // load custom params
   EEPROM.begin(512);
@@ -239,10 +239,10 @@ void setup() {
 
   ticker.detach();
 
-  doorState = digitalRead(DOOR_SENSOR_PIN);
+  occupancyState = digitalRead(OCCUPANCY_SENSOR_PIN);
   digitalWrite(BUILTIN_LED, HIGH);
 
-  publishDoorState();
+  publishOccupancyState();
 }
 
 void loop() {
@@ -262,17 +262,17 @@ void loop() {
     case CMD_NOT_DEFINED:
       // do nothing ...
       break;
-    case CMD_DOOR_STATE_CHANGED:
-      currentDoorState = digitalRead(DOOR_SENSOR_PIN);
-      if (doorState != currentDoorState) {
-        if (currentDoorState == HIGH) {
-          DEBUG_PRINTLN(F("INFO: Door opened"));
+    case CMD_OCCUPANCY_STATE_CHANGED:
+      currentOccupancyState = digitalRead(OCCUPANCY_SENSOR_PIN);
+      if (occupancyState != currentOccupancyState) {
+        if (currentOccupancyState == HIGH) {
+          DEBUG_PRINTLN(F("INFO: Occupancy opened"));
         } else {
-          DEBUG_PRINTLN(F("INFO: Door closed"));
+          DEBUG_PRINTLN(F("INFO: Occupancy closed"));
         }
-        doorState = currentDoorState;
+        occupancyState = currentOccupancyState;
       }
-      publishDoorState();
+      publishOccupancyState();
       cmd = CMD_NOT_DEFINED;
       break;    
   }
