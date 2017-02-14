@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Welcome to Firebase Hosting</title>
+    <style media="screen">
+      body {
+        font-family: Roboto, Arial, sans-serif;
+        background: #ECEFF1;
+        color: rgba(0,0,0,0.87);        
+      }
+
+      .card {
+        text-align: center;      
+        
+        box-shadow: 0 1px 3px 0 rgba(0,0,0,0.2),0 1px 1px 0 rgba(0,0,0,0.14),0 2px 1px -1px rgba(0,0,0,0.12);
+        border-radius: 2px;
+        background: #2e9e49;
+        padding: 24px;
+        margin: 10vh 5vh auto;
+        color: white;
+      }
+
+      #message {
+        font-size: 2em;
+      }
+
+      .occupied{
+        background: #e73a2f !important; 
+      }
+    </style>
+  </head>
+  <body>    
+    <div class="card">
+      <h2>Cadeira do Alvaro</h2>
+      <img src="./cadeira.png" height="200px"></img>
+      <h1 id="message">Desocupada</h1>
+    </div>
+  </body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.2/mqttws31.min.js"></script>  
+  <script type="text/javascript">   
+    var config = {
+      broker: 'broker.iot-bootcamp.com',
+      topic: '91C7B1/binary_sensor/door/state',
+      port: 8443
+    };
+
+    var mqtt = new Paho.MQTT.Client(
+      config.broker,config.port,"client-" + Date.now());
+
+
+    mqtt.onMessageArrived = onMessageArrived;
+
+    var el = document.getElementById('message');  
+    var card = document.querySelector('.card');      
+    function onMessageArrived(message) {
+      var state = message.payloadString;            
+      var msg = 'Desocupada';
+      if(state === 'ON'){
+        card.classList.add('occupied');
+        msg = 'Ocupada';
+      }else{
+        card.classList.remove('occupied')
+      }
+      el.innerHTML = msg;
+    }
+
+    var options = {
+        timeout: 3,
+        useSSL: true,
+        onSuccess: onSuccess,
+        onFailure: onFailure
+    };
+
+    function onSuccess() {
+        mqtt.subscribe(config.topic, {qos: 1});
+    };
+
+    function onFailure(message) {
+        console.log("Connection failed: " + message.errorMessage);
+    }
+
+
+    mqtt.connect(options); // Conecta ao Broker MQTT    
+  </script>
+</html>
