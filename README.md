@@ -5,7 +5,12 @@
 * Módulo carregador de bateria de litio.
 * Bateria litio 3.7v ( Foi usada uma de 240mAh ) 
 * Sensor de proximidade binário por infravermelho
+* Chave liga/desliga
 
-#### Schematic
+#### Fotos
+
+![Fotos](https://github.com/alvarowolfx/iot-chair-sensor/blob/master/schematic/photos.jpg)
+
+#### Esquemático
 
 ![Esquematico](https://github.com/alvarowolfx/iot-chair-sensor/blob/master/schematic/ChairSensor.png)
